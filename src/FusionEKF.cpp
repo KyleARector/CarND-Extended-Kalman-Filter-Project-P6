@@ -31,9 +31,9 @@ FusionEKF::FusionEKF() {
               0, 1, 0, 0;
 
   // Measurement covariance matrix - radar
-  R_radar_ << 0.09, 0, 0,
-              0, 0.0009, 0,
-              0, 0, 0.09;
+  R_radar_ << 1, 0, 0,
+              0, 0.002, 0,
+              0, 0, 0.1;
 
   VectorXd x_(4);
   x_ << 1, 1, 1, 1;
@@ -84,9 +84,11 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       // Convert polar coordinates to x and y
       // X
-      ekf_.x_[0] = measurement_pack.raw_measurements_[0];
+      ekf_.x_[0] = measurement_pack.raw_measurements_[0]
+                   * cos(measurement_pack.raw_measurements_[1]);
       // Y
-      ekf_.x_[1] = measurement_pack.raw_measurements_[1];
+      ekf_.x_[1] = measurement_pack.raw_measurements_[0]
+                   * sin(measurement_pack.raw_measurements_[1]);
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       // If type laser, data is already in x and y
@@ -110,7 +112,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    *  Prediction
    ****************************************************************************/
 
-  // calculate delta t in seconds
+  // Calculate delta t in seconds
   float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
 
   // Update the timestamp

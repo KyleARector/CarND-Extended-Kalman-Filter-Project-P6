@@ -3,6 +3,8 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
+#define PI 3.14159265358979323846
+
 KalmanFilter::KalmanFilter() {}
 
 KalmanFilter::~KalmanFilter() {}
@@ -40,8 +42,40 @@ void KalmanFilter::Update(const VectorXd &z) {
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
-  /**
-  TODO:
-    * update the state by using Extended Kalman Filter equations
-  */
+  VectorXd hx(3);
+  float px = x_(0);
+  float py = x_(1);
+  float vx = x_(2);
+  float vy = x_(3);
+  float phi = atan2(py, px);
+
+  // Filter between -Pi and Pi
+  while (phi < - PI)
+  {
+    phi = phi + 2 * PI;
+  }
+
+  while(phi > PI)
+  {
+    phi = phi - 2 * PI;
+  }
+
+  float rho = sqrt(px * px + py * py) + 0.000001f;
+
+  float rho_dot = (px * vx + py* vy) / rho;
+
+  hx << rho, phi, rho_dot;
+
+  VectorXd y = z - hx;
+
+  //update Kalman gain
+  MatrixXd Hjt = H_.transpose();
+  MatrixXd S = H_ * P_ * Hjt + R_;
+  MatrixXd K = P_ * Hjt * S.inverse();
+
+  x_ = x_ + K * y;
+
+  long x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  P_ = (I - K * H_) * P_;
 }

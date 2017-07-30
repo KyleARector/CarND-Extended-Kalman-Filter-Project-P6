@@ -17,17 +17,17 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   // Check that the estimate size is the same as te ground truth vector
   // and that the estimate size is non-zero
   if(estimations.size() != ground_truth.size() || estimations.size() == 0){
-       cout << "Invalid estimation or ground_truth data" << endl;
-       return rmse;
+    cout << "Invalid estimation or ground_truth data" << endl;
+    return rmse;
   }
 
   // Accumulate squared residuals
   for(unsigned int i=0; i < estimations.size(); ++i){
-  VectorXd residual = estimations[i] - ground_truth[i];
+    VectorXd residual = estimations[i] - ground_truth[i];
 
-  // Coefficient-wise multiplication
-  residual = residual.array()*residual.array();
-  rmse += residual;
+    // Coefficient-wise multiplication
+    residual = residual.array()*residual.array();
+    rmse += residual;
   }
 
   // Calculate the mean
