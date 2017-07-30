@@ -3,8 +3,6 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-#define PI 3.14159265358979323846
-
 KalmanFilter::KalmanFilter() {}
 
 KalmanFilter::~KalmanFilter() {}
@@ -19,63 +17,53 @@ void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
   Q_ = Q_in;
 }
 
+void KalmanFilter::NormalizeAngle(double& phi)
+{
+  phi = atan2(sin(phi), cos(phi));
+}
+
 void KalmanFilter::Predict() {
   x_ = F_ * x_;
-	MatrixXd Ft = F_.transpose();
+	const MatrixXd Ft = F_.transpose();
 	P_ = F_ * P_ * Ft + Q_;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
-  VectorXd z_pred = H_ * x_;
+  const VectorXd z_pred = H_ * x_;
 	VectorXd y = z - z_pred;
-	MatrixXd Ht = H_.transpose();
-	MatrixXd S = H_ * P_ * Ht + R_;
-	MatrixXd Si = S.inverse();
-	MatrixXd PHt = P_ * Ht;
-	MatrixXd K = PHt * Si;
 
-	// New estimate
-	x_ = x_ + (K * y);
-	long x_size = x_.size();
-	MatrixXd I = MatrixXd::Identity(x_size, x_size);
-	P_ = (I - K * H_) * P_;
+  // Update Kalman gain
+  UpdateCommon(y);
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
   VectorXd hx(3);
-  float px = x_(0);
-  float py = x_(1);
-  float vx = x_(2);
-  float vy = x_(3);
-  float phi = atan2(py, px);
+  const float px = x_(0);
+  const float py = x_(1);
+  const float vx = x_(2);
+  const float vy = x_(3);
+  const float phi = atan2(py, px);
 
-  // Filter between -Pi and Pi
-  while (phi < - PI)
-  {
-    phi = phi + 2 * PI;
-  }
+  const float rho = sqrt(px * px + py * py) + 0.000001f;
 
-  while(phi > PI)
-  {
-    phi = phi - 2 * PI;
-  }
-
-  float rho = sqrt(px * px + py * py) + 0.000001f;
-
-  float rho_dot = (px * vx + py* vy) / rho;
+  const float rho_dot = (px * vx + py* vy) / rho;
 
   hx << rho, phi, rho_dot;
 
   VectorXd y = z - hx;
 
-  //update Kalman gain
-  MatrixXd Hjt = H_.transpose();
-  MatrixXd S = H_ * P_ * Hjt + R_;
-  MatrixXd K = P_ * Hjt * S.inverse();
+  NormalizeAngle(y(1));
 
-  x_ = x_ + K * y;
+  // Update Kalman gain
+  UpdateCommon(y);
+}
 
-  long x_size = x_.size();
-  MatrixXd I = MatrixXd::Identity(x_size, x_size);
-  P_ = (I - K * H_) * P_;
+void KalmanFilter::UpdateCommon(const VectorXd& y)
+{
+  const MatrixXd PHt = P_ * H_.transpose();
+  const MatrixXd S = H_ * PHt + R_;
+  const MatrixXd K = PHt * S.inverse();
+
+  x_ += K * y;
+  P_ -= K * H_ * P_;
 }

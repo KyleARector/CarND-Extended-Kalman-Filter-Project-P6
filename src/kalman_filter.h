@@ -64,6 +64,11 @@ public:
    */
   void UpdateEKF(const Eigen::VectorXd &z);
 
+  // Normalizes angle between -Pi and Pi
+  void NormalizeAngle(double& phi);
+
+  // Common features of updates
+  void UpdateCommon(const Eigen::VectorXd& y);
 };
 
 #endif /* KALMAN_FILTER_H_ */
